@@ -10,7 +10,7 @@
 #include <kdebug.h>
 
 #define TICK_NUM 100
-uint32_t timer = 0;
+static uint32_t timer = 0;
 
 static void print_ticks() {
     cprintf("%d ticks\n",TICK_NUM);
