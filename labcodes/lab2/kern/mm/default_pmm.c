@@ -117,7 +117,7 @@ helper_debug(const char *name) {
 
 static void
 default_init_memmap(struct Page *base, size_t n) {
-    helper_debug("before map");
+    //helper_debug("before map");
 
     assert(n > 0);
     struct Page *p = base;
@@ -131,7 +131,7 @@ default_init_memmap(struct Page *base, size_t n) {
     nr_free += n;
     list_add_before(&free_list, &(base->page_link));
 
-    helper_debug("after debug");
+    //helper_debug("after debug");
 }
 
 
@@ -143,7 +143,7 @@ default_alloc_pages(size_t n) {
         return NULL;
     }
 
-    helper_debug("before alloc");
+    //helper_debug("before alloc");
 
     struct Page *page = NULL;
     list_entry_t *le = &free_list;
@@ -166,7 +166,7 @@ default_alloc_pages(size_t n) {
         ClearPageProperty(page);
     }
 
-    helper_debug("after alloc");
+    //helper_debug("after alloc");
 
     return page;
 }
@@ -175,7 +175,7 @@ static void
 default_free_pages(struct Page *base, size_t n) {
     assert(n > 0);
 
-    helper_debug("before free");
+    //helper_debug("before free");
 
     struct Page *p = base;
     for (; p != base + n; p ++) {
@@ -186,6 +186,7 @@ default_free_pages(struct Page *base, size_t n) {
     base->property = n;
     SetPageProperty(base);
     list_entry_t *le = list_next(&free_list);
+    // merge
     while (le != &free_list) {
         p = le2page(le, page_link);
         le = list_next(le);
@@ -201,6 +202,7 @@ default_free_pages(struct Page *base, size_t n) {
             list_del(&(p->page_link));
         }
     }
+    // insert
     le = &free_list;
     while ((le = list_next(le)) != &free_list) {
         p = le2page(le, page_link);
@@ -214,7 +216,7 @@ default_free_pages(struct Page *base, size_t n) {
     }
 
     nr_free += n;
-    helper_debug("after free");
+    //helper_debug("after free");
 }
 
 static size_t
