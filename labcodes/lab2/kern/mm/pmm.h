@@ -84,6 +84,12 @@ page2pa(struct Page *page) {
     return page2ppn(page) << PGSHIFT;
 }
 
+/**
+ * 根据物理地址获取page数据结构的指针
+ * pages结构是一个连续的数组，总个数是所有探测到的物理内存，包括
+ * 该数组本身占用的物理内存。由于内存是4KB对齐的，因此根据物理内存
+ * 地址可以通过向左移动12位来计算在pages数组中的索引。
+ */ 
 static inline struct Page *
 pa2page(uintptr_t pa) {
     if (PPN(pa) >= npage) {
