@@ -2,6 +2,7 @@
 #include <list.h>
 #include <string.h>
 #include <default_pmm.h>
+#include "stdio.h"
 
 /*  In the First Fit algorithm, the allocator keeps a list of free blocks
  * (known as the free list). Once receiving a allocation request for memory,
@@ -105,7 +106,19 @@ default_init(void) {
 }
 
 static void
+helper_debug(const char *name) {
+    cprintf("\n%s\n", name);
+    list_entry_t *le = &free_list;
+    while ((le = list_next(le)) != &free_list) {
+        struct Page *p = le2page(le, page_link);
+        cprintf("page addr: 0x%08x, page num: %d, free block: %d\n", p, p->property, nr_free);
+    }
+}
+
+static void
 default_init_memmap(struct Page *base, size_t n) {
+    helper_debug("before map");
+
     assert(n > 0);
     struct Page *p = base;
     for (; p != base + n; p ++) {
@@ -116,8 +129,12 @@ default_init_memmap(struct Page *base, size_t n) {
     base->property = n;
     SetPageProperty(base);
     nr_free += n;
-    list_add(&free_list, &(base->page_link));
+    list_add_before(&free_list, &(base->page_link));
+
+    helper_debug("after debug");
 }
+
+
 
 static struct Page *
 default_alloc_pages(size_t n) {
@@ -125,6 +142,9 @@ default_alloc_pages(size_t n) {
     if (n > nr_free) {
         return NULL;
     }
+
+    helper_debug("before alloc");
+
     struct Page *page = NULL;
     list_entry_t *le = &free_list;
     while ((le = list_next(le)) != &free_list) {
@@ -135,21 +155,28 @@ default_alloc_pages(size_t n) {
         }
     }
     if (page != NULL) {
-        list_del(&(page->page_link));
-        if (page->property > n) {
+        if(page->property > n) {
             struct Page *p = page + n;
             p->property = page->property - n;
-            list_add(&free_list, &(p->page_link));
-    }
+            SetPageProperty(p);
+            list_add(&(page->page_link), &(p->page_link));
+        }
+        list_del(&(page->page_link));
         nr_free -= n;
         ClearPageProperty(page);
     }
+
+    helper_debug("after alloc");
+
     return page;
 }
 
 static void
 default_free_pages(struct Page *base, size_t n) {
     assert(n > 0);
+
+    helper_debug("before free");
+
     struct Page *p = base;
     for (; p != base + n; p ++) {
         assert(!PageReserved(p) && !PageProperty(p));
@@ -174,8 +201,20 @@ default_free_pages(struct Page *base, size_t n) {
             list_del(&(p->page_link));
         }
     }
+    le = &free_list;
+    while ((le = list_next(le)) != &free_list) {
+        p = le2page(le, page_link);
+        if (p + p->property < base) {
+            list_add(&(p->page_link), &(base->page_link));
+            break;
+        }
+    }
+    if (le == &free_list) {
+        list_add_before(&free_list, &(base->page_link));
+    }
+
     nr_free += n;
-    list_add(&free_list, &(base->page_link));
+    helper_debug("after free");
 }
 
 static size_t
