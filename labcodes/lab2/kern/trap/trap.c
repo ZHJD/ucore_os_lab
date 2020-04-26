@@ -11,6 +11,8 @@
 
 #define TICK_NUM 100
 
+static uint32_t timer = 0;
+
 static void print_ticks() {
     cprintf("%d ticks\n",TICK_NUM);
 #ifdef DEBUG_GRADE
@@ -46,6 +48,12 @@ idt_init(void) {
       *     You don't know the meaning of this instruction? just google it! and check the libs/x86.h to know more.
       *     Notice: the argument of lidt is idt_pd. try to find it!
       */
+    extern uintptr_t __vectors[];
+    for(int i = 0; i < 256; i++) {
+        SETGATE(idt[i], 0, KERNEL_CS, __vectors[i], 0);
+    }
+    SETGATE(idt[0x80], 1, KERNEL_CS, __vectors[0x80], 3);
+    lidt(&idt_pd);
 }
 
 static const char *
@@ -147,6 +155,11 @@ trap_dispatch(struct trapframe *tf) {
          * (2) Every TICK_NUM cycle, you can print some info using a funciton, such as print_ticks().
          * (3) Too Simple? Yes, I think so!
          */
+        timer++;
+        if(timer % TICK_NUM == 0) {
+            print_ticks();
+        }
+        
         break;
     case IRQ_OFFSET + IRQ_COM1:
         c = cons_getc();
@@ -158,8 +171,37 @@ trap_dispatch(struct trapframe *tf) {
         break;
     //LAB1 CHALLENGE 1 : YOUR CODE you should modify below codes.
     case T_SWITCH_TOU:
+        tf->tf_cs = USER_CS;
+        tf->tf_ds = USER_DS;
+        tf->tf_es = USER_DS;
+        tf->tf_fs = USER_DS;
+        tf->tf_gs = USER_DS;
+        tf->tf_ss = USER_DS;
+        //tf->tf_regs.reg_ebp = 0;
+        tf->tf_eflags = (FL_IOPL_0 | FL_IOPL_MASK | FL_IF);
+        //tf->tf_esp = tf->tf_regs.reg_oesp;
+	break;
     case T_SWITCH_TOK:
-        panic("T_SWITCH_** ??\n");
+        tf->tf_cs = KERNEL_CS;
+        tf->tf_eip = tf->tf_regs.reg_eax;
+        tf->tf_ds = KERNEL_DS;
+        tf->tf_es = KERNEL_DS;
+        tf->tf_fs = KERNEL_DS;
+        tf->tf_ss = KERNEL_DS;
+        //tf->tf_regs.reg_ebp = 0;
+        tf->tf_eflags = (FL_IOPL_3 | FL_IOPL_MASK | FL_IF);
+	break;
+    case T_SYSCALL:
+        if(tf->tf_regs.reg_eax == T_SWITCH_TOK) {
+            asm volatile (
+                "movl %0, %%eax \n\t"
+		"movl %1, %%ebx \n\t"
+                "int $121 \n\t"
+                :
+                : "r"(tf->tf_eip), "r"(tf->tf_regs.reg_ebx)
+                : "eax","ebx"
+                );
+        }
         break;
     case IRQ_OFFSET + IRQ_IDE1:
     case IRQ_OFFSET + IRQ_IDE2:
