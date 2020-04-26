@@ -360,6 +360,7 @@ get_pte(pde_t *pgdir, uintptr_t la, bool create) {
      *   PTE_W           0x002                   // page table/directory entry flags bit : Writeable
      *   PTE_U           0x004                   // page table/directory entry flags bit : User can access
      */
+/*
 #if 0
     pde_t *pdep = NULL;   // (1) find page directory entry
     if (0) {              // (2) check if entry is not present
@@ -372,6 +373,27 @@ get_pte(pde_t *pgdir, uintptr_t la, bool create) {
     }
     return NULL;          // (8) return page table entry
 #endif
+*/
+    pde_t *pdep = pgdir + PDX(la);
+    if (!(*pdep & PTE_P)) {
+        if (create) {
+            struct Page *page = alloc_page();
+            page_ref_inc(page);
+            uintptr_t pa = page2pa(page);
+            *pdep = ((pa & 0xfffff000) | PTE_W | PTE_U | PTE_P);
+            memset(KADDR(pa), 0, PGSIZE);
+            pte_t *ptep = ((pte_t *)KADDR(pa) + PTX(la));
+            return ptep;
+        }
+        else {
+            return NULL;
+        }
+    }
+    else {
+        pte_t *ptep = ((pte_t *)KADDR(*pdep & ~0xfff)) + PTX(la);
+       // cprintf("\n pte_p 0x%08x\n", ptep);
+        return ptep;
+    }
 }
 
 //get_page - get related Page struct for linear address la using PDT pgdir
@@ -408,6 +430,7 @@ page_remove_pte(pde_t *pgdir, uintptr_t la, pte_t *ptep) {
      * DEFINEs:
      *   PTE_P           0x001                   // page table/directory entry flags bit : Present
      */
+/*
 #if 0
     if (0) {                      //(1) check if this page table entry is present
         struct Page *page = NULL; //(2) find corresponding page to pte
@@ -417,6 +440,16 @@ page_remove_pte(pde_t *pgdir, uintptr_t la, pte_t *ptep) {
                                   //(6) flush tlb
     }
 #endif
+*/
+    if (*ptep & PTE_P) {
+        struct Page *p = pte2page(*ptep);
+        page_ref_dec(p);
+        if (p->ref == 0) {
+            free_page(p);
+            *ptep &= (~PTE_P);
+            tlb_invalidate(pgdir, la);
+        }
+    }
 }
 
 //page_remove - free an Page which is related linear address la and has an validated pte
