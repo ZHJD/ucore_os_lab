@@ -217,6 +217,8 @@ page_init(void) {
         SetPageReserved(pages + i);
     }
 
+    cprintf("\nsize of pages %d KB, tatal %d pages\n", npage * sizeof(struct Page) / 1024, npage);
+
     uintptr_t freemem = PADDR((uintptr_t)pages + sizeof(struct Page) * npage);
 
     for (i = 0; i < memmap->nr_map; i ++) {
@@ -292,6 +294,8 @@ pmm_init(void) {
     check_alloc_page();
 
     check_pgdir();
+
+    cprintf("boot_ptr = 0x%08x, boot_cr3 = 0x%08x\n", boot_pgdir, boot_cr3);
 
     static_assert(KERNBASE % PTSIZE == 0 && KERNTOP % PTSIZE == 0);
 
