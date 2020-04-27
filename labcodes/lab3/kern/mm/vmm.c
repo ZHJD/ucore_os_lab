@@ -408,6 +408,7 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
             int s_in = swap_in(mm, addr, &page);
             page_insert(mm->pgdir, page, addr, mm->mmap_cache->vm_flags);
             swap_map_swappable(mm, addr, page, s_in);
+            // 要修改新页面对应的虚拟地址，因为这是新分配的，不新盖的话还是旧地址
             page->pra_vaddr = addr;
         }
         else {

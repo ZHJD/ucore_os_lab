@@ -107,6 +107,7 @@ swap_out(struct mm_struct *mm, int n, int in_tick)
           }
           else {
                     cprintf("swap_out: i %d, store page in vaddr 0x%x to disk swap entry %d\n", i, v, page->pra_vaddr/PGSIZE+1);
+                    // 此时页表项代表虚拟也和磁盘山区的关系，p = 0的情况下
                     *ptep = (page->pra_vaddr/PGSIZE+1)<<8;
                     free_page(page);
           }
@@ -121,7 +122,8 @@ swap_in(struct mm_struct *mm, uintptr_t addr, struct Page **ptr_result)
 {
      struct Page *result = alloc_page();
      assert(result!=NULL);
-
+     
+     // 此时页表项p代表虚拟也在磁盘扇区上的偏移
      pte_t *ptep = get_pte(mm->pgdir, addr, 0);
      // cprintf("SWAP: load ptep %x swap entry %d to vaddr 0x%08x, page %x, No %d\n", ptep, (*ptep)>>8, addr, result, (result-pages));
     
