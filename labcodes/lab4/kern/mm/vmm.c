@@ -361,8 +361,8 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
     *   mm->pgdir : the PDT of these vma
     *
     */
-#if 0
-    /*LAB3 EXERCISE 1: YOUR CODE*/
+
+    /*LAB3 EXERCISE 1: YOUR CODE
     ptep = ???              //(1) try to find a pte, if pte's PT(Page Table) isn't existed, then create a PT.
     if (*ptep == 0) {
                             //(2) if the phy addr isn't exist, then alloc a page & map the phy addr with logical addr
@@ -379,7 +379,7 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
     *                               find the addr of disk page, read the content of disk page into this memroy page
     *    page_insert ： build the map of phy addr of an Page with the linear addr la
     *    swap_map_swappable ： set the page swappable
-    */
+    *
         if(swap_init_ok) {
             struct Page *page=NULL;
                                     //(1）According to the mm AND addr, try to load the content of right disk page
@@ -392,7 +392,25 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
             goto failed;
         }
    }
-#endif
+*/
+    ptep = get_pte(mm->pgdir, addr, 1);
+    if (*ptep == 0) {
+        pgdir_alloc_page(mm->pgdir, addr, mm->mmap_cache->vm_flags);
+    }
+    else {
+        if (swap_init_ok) {
+            struct Page *page = NULL;
+            int s_in = swap_in(mm, addr, &page);
+            page_insert(mm->pgdir, page, addr, mm->mmap_cache->vm_flags);
+            swap_map_swappable(mm, addr, page, s_in);
+            // 要修改新页面对应的虚拟地址，因为这是新分配的，不新盖的话还是旧地址
+            page->pra_vaddr = addr;
+        }
+        else {
+            cprintf("no swap_init_ok but ptep is %x, failed\n",*ptep);
+            goto failed;
+        }
+    }
    ret = 0;
 failed:
     return ret;

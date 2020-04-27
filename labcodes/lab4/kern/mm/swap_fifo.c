@@ -51,6 +51,7 @@ _fifo_map_swappable(struct mm_struct *mm, uintptr_t addr, struct Page *page, int
     //record the page access situlation
     /*LAB3 EXERCISE 2: YOUR CODE*/ 
     //(1)link the most recent arrival page at the back of the pra_list_head qeueue.
+    list_add_before(head, entry);
     return 0;
 }
 /*
@@ -61,12 +62,20 @@ static int
 _fifo_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tick)
 {
      list_entry_t *head=(list_entry_t*) mm->sm_priv;
-         assert(head != NULL);
+     assert(head != NULL);
      assert(in_tick==0);
      /* Select the victim */
      /*LAB3 EXERCISE 2: YOUR CODE*/ 
      //(1)  unlink the  earliest arrival page in front of pra_list_head qeueue
      //(2)  assign the value of *ptr_page to the addr of this page
+     assert(!list_empty(head));
+     list_entry_t *entry = list_next(head);
+     assert(head != entry && head->next == entry && entry->prev ==head);
+     // 这里的偏移项目不能弄错,多层嵌套宏容易出错
+     struct Page *old_page = le2page(entry, pra_page_link);
+     list_del(entry);
+     *ptr_page = old_page;
+     cprintf("\n\tout page = 0x%08x\n", old_page->pra_vaddr);
      return 0;
 }
 
