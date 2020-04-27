@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.def": "c",
+        "console.h": "c"
+    }
+}
