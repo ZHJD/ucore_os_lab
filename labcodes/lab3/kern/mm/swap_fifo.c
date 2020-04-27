@@ -78,14 +78,14 @@ _fifo_swap_out_victim(struct mm_struct *mm, struct Page ** ptr_page, int in_tick
      assert(!list_empty(head));
      list_entry_t *entry = list_next(head);
      assert(head != entry && head->next == entry && entry->prev ==head);
-
+     // 这里的偏移项目不能弄错,多层嵌套宏容易出错
      struct Page *old_page = le2page(entry, pra_page_link);
      list_del(entry);
      *ptr_page = old_page;
 
      cprintf("\n\tout page = 0x%08x\n", old_page->pra_vaddr);
     
-     helpe_debug(head);
+     //helpe_debug(head);
     
      return 0;
 }
