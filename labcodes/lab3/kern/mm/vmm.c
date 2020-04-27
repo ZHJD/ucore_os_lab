@@ -400,8 +400,7 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
 */
     ptep = get_pte(mm->pgdir, addr, 1);
     if (*ptep == 0) {
-        struct Page *page = alloc_page();
-        page_insert(mm->pgdir, page, addr, mm->mmap_cache->vm_flags);
+        pgdir_alloc_page(mm->pgdir, addr, mm->mmap_cache->vm_flags);
     }
     else {
         if (swap_init_ok) {
@@ -409,6 +408,7 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
             int s_in = swap_in(mm, addr, &page);
             page_insert(mm->pgdir, page, addr, mm->mmap_cache->vm_flags);
             swap_map_swappable(mm, addr, page, s_in);
+            page->pra_vaddr = addr;
         }
         else {
             cprintf("no swap_init_ok but ptep is %x, failed\n",*ptep);
