@@ -13,8 +13,6 @@
 
 #define TICK_NUM 100
 
-static uint32_t timer = 0;
-
 static void print_ticks() {
     cprintf("%d ticks\n",TICK_NUM);
 #ifdef DEBUG_GRADE
@@ -194,8 +192,8 @@ trap_dispatch(struct trapframe *tf) {
          * (2) Every TICK_NUM cycle, you can print some info using a funciton, such as print_ticks().
          * (3) Too Simple? Yes, I think so!
          */
-        timer++;
-        if (timer % TICK_NUM) {
+        ticks++;
+        if (ticks % TICK_NUM == 0) {
             print_ticks();
         }
         break;
