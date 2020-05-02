@@ -57,6 +57,12 @@ idt_init(void) {
      /* LAB5 YOUR CODE */ 
      //you should update your lab1 code (just add ONE or TWO lines of code), let user app to use syscall to get the service of ucore
      //so you should setup the syscall interrupt gate in here
+    extern uintptr_t __vectors[];
+    for(int i = 0; i < 256; i++) {
+        SETGATE(idt[i], 0, KERNEL_CS, __vectors[i], 0);
+    }
+    SETGATE(idt[0x80], 1, KERNEL_CS, __vectors[0x80], 3);
+    lidt(&idt_pd);
 }
 
 static const char *
@@ -210,10 +216,11 @@ trap_dispatch(struct trapframe *tf) {
         syscall();
         break;
     case IRQ_OFFSET + IRQ_TIMER:
+/*
 #if 0
     LAB3 : If some page replacement algorithm(such as CLOCK PRA) need tick to change the priority of pages,
     then you can add code here. 
-#endif
+#endif */
         /* LAB1 YOUR CODE : STEP 3 */
         /* handle the timer interrupt */
         /* (1) After a timer interrupt, you should record this event using a global variable (increase it), such as ticks in kern/driver/clock.c
@@ -229,6 +236,11 @@ trap_dispatch(struct trapframe *tf) {
          * IMPORTANT FUNCTIONS:
 	     * sched_class_proc_tick
          */
+               ticks++;
+        if (ticks % TICK_NUM == 0) {
+            current->need_resched = 1;
+            print_ticks();
+        }
         break;
     case IRQ_OFFSET + IRQ_COM1:
         c = cons_getc();
