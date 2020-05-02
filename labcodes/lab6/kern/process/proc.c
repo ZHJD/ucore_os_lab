@@ -129,6 +129,7 @@ alloc_proc(void) {
         proc->parent        = current;
         proc->mm            = NULL;
         proc->cr3           = boot_cr3;
+        list_init(&(proc->run_link));
         //proc->wait_state    = WT_INTERRUPTED;
     }
     return proc;
