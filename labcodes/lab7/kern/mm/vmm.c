@@ -451,9 +451,10 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
     *   mm->pgdir : the PDT of these vma
     *
     */
+/*
 #if 0
     /*LAB3 EXERCISE 1: YOUR CODE*/
-    ptep = ???              //(1) try to find a pte, if pte's PT(Page Table) isn't existed, then create a PT.
+ /*   ptep = ???              //(1) try to find a pte, if pte's PT(Page Table) isn't existed, then create a PT.
     if (*ptep == 0) {
                             //(2) if the phy addr isn't exist, then alloc a page & map the phy addr with logical addr
 
@@ -478,7 +479,7 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
 		     This method could be used to implement the Copy on Write (COW) thchnology(a fast fork process method).
 		  2) *ptep & PTE_P == 0 & but *ptep!=0, it means this pte is a  swap entry.
 		     We should add the LAB3's results here.
-     */
+     
         if(swap_init_ok) {
             struct Page *page=NULL;
                                     //(1）According to the mm AND addr, try to load the content of right disk page
@@ -493,10 +494,29 @@ do_pgfault(struct mm_struct *mm, uint32_t error_code, uintptr_t addr) {
         }
    }
 #endif
+*/
+    ptep = get_pte(mm->pgdir, addr, 1);
+    if (*ptep == 0) {
+        pgdir_alloc_page(mm->pgdir, addr, mm->mmap_cache->vm_flags);
+    }
+    else {
+        if (swap_init_ok) {
+            struct Page *page = NULL;
+            int s_in = swap_in(mm, addr, &page);
+            page_insert(mm->pgdir, page, addr, mm->mmap_cache->vm_flags);
+            swap_map_swappable(mm, addr, page, s_in);
+            // 要修改新页面对应的虚拟地址，因为这是新分配的，不新盖的话还是旧地址
+            page->pra_vaddr = addr;
+        }
+        else {
+            cprintf("no swap_init_ok but ptep is %x, failed\n",*ptep);
+            goto failed;
+        }
+    }
    ret = 0;
 failed:
     return ret;
-}
+}   
 
 bool
 user_mem_check(struct mm_struct *mm, uintptr_t addr, size_t len, bool write) {
